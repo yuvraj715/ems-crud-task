@@ -1,0 +1,37 @@
+version: "3.9"
+services:
+  mysql:
+    image: mysql:8.0
+    container_name: mysql
+    environment:
+      MYSQL_ROOT_PASSWORD: example
+      MYSQL_DATABASE: ems_db
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+      - ./docker/mysql/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-hexample"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: ems-crud
+    depends_on:
+      mysql:
+        condition: service_healthy
+    ports:
+      - "8080:8080"
+    # optional: environment for future use if you externalize DB config
+    environment:
+      JDBC_URL: jdbc:mysql://mysql:3306/ems_db?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC
+      JDBC_USERNAME: root
+      JDBC_PASSWORD: example
+
+volumes:
+  mysql_data:
